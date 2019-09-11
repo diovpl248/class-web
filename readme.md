@@ -1,6 +1,6 @@
 # class-web
 
-![홈]()
+![홈](https://github.com/diovpl248/class-web/blob/master/home.png?raw=true)
 
 학교에서 웹 프로그래밍 수업 진행중 만든 프로젝트
 
