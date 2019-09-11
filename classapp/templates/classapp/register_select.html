@@ -1,0 +1,13 @@
+{% extends 'classapp/base.html' %}
+{% block content %}
+        <br>
+        <br>
+        <form action="{% url 'classapp:register_select' %}" method='POST'> 
+            {% csrf_token %}
+
+            {{form}}
+
+            <input type="submit" style="width:300px; height:30px; background-color:#d18173cb; border: none; color: white;"value="확인">
+            </form>
+
+            {% endblock %}
