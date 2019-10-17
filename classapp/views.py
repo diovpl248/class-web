@@ -7,6 +7,9 @@ from django.views.generic import DetailView
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
+from django.utils.safestring import mark_safe
+import json
+
 
 from . import forms
 from . import models
@@ -74,6 +77,8 @@ class MyInfoView(FormView):
 	template_name = 'classapp/myinfo.html' 
 	
 	def get(self, request, *args, **kwargs):
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
 		form = forms.MyinfoForm()
 		if request.session['login']:
 			login_id = request.session['id_code']
@@ -132,10 +137,17 @@ class RegisterView_S(FormView):
 	def post(self, request, *args, **kwargs): 
 		form = forms.RegisterForm_S(request.POST)
 		if form.is_valid():
+			
 			new_email = form.cleaned_data['email_input']
 			new_pass_input = form.cleaned_data['pass_input']
-			new_number_input = form.cleaned_data['number_input']     
-			models.Student.objects.create(email = new_email, password = new_pass_input, number = new_number_input)
+			new_number_input = form.cleaned_data['number_input']
+			try:
+				student = models.Student.objects.create(email = new_email, 
+								password = new_pass_input, number = new_number_input)
+				group = models.Group.objects.filter(group_name="전체그룹").get()
+				models.Groupmember.objects.create(group=group,student=student)
+			except:
+				return render(request, 'classapp/msg.html', {'msg':'알 수 없는 오류입니다'})
 			return render(request, 'classapp/msg.html', {'msg':'회원가입 완료'})
 		return render(request, 'classapp/register_s.html', {'form':form})
 	'''
@@ -169,11 +181,30 @@ class RegisterView_P(FormView):
 class BoardListView(ListView):
 	model = models.Board
 
+	def get(self, request, *args, **kwargs):
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
+
+		if request.session.get('user_type') == 0: #학생이면
+			student = models.Student.objects.filter(email=request.session.get('email')).get()
+			mygroup = models.Groupmember.objects.filter(student=student)
+			object_list = []
+			for data in mygroup:
+				for board in models.Board.objects.filter(group_id=data.group):
+					object_list.append(board)
+
+		else:
+			object_list = models.Board.objects.all()
+
+		return render(request,'classapp/board_list.html',{'object_list':object_list})
+
 
 class PostListView(ListView):
 	model = models.Post
 
 	def get(self, request, *args, **kwargs):
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
 		board_num = kwargs['board_num']
 		object_list = models.Post.objects.filter(board=board_num)
 		return render(request, 'classapp/post_list.html', {'object_list':object_list,'board_num':board_num})
@@ -182,6 +213,8 @@ class PostWriteView(View):
 	model = models.Post
 
 	def get(self, request, *args, **kwargs):
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
 		board_num = kwargs['board_num']
 		postForm = forms.PostForm()
 		return render(request, 'classapp/post_write.html', {'postForm':postForm, 'board_num':board_num})
@@ -212,6 +245,8 @@ class PostDetailView(DetailView):
 	model = models.Post
 
 	def get(self, request, *args, **kwargs):
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
 		board_num = kwargs['board_num']
 		post_num = kwargs['post_num']
 		postInfo = models.Post.objects.filter(board=board_num,id=post_num).get()
@@ -321,45 +356,34 @@ class PostEditView(View):
 
 		return render(request, 'classapp/post_write.html', {'postForm':form, 'board_num':board_num})
 
+class PostDeleteView(View):
+	model = models.Post
 
-class ChatroomListView(ListView):
-	model = models.Chatroom
-
-	def get(self, request, *args,**kwargs):
-		object_list = models.Chatroom.objects.filter()
-		return render(request,'classapp/chat_list.html',{'object_list':object_list})
-
-class ChatcreateListView(ListView):
-	model = models.Chatroom
-	
-	def get(self, request, *args, **kwargs):
-		form = forms.ChatForm()
-		return render(request,'classapp/chat_create.html',{'form':form})
-	def post(self,request):
-		form = forms.ChatForm(request.POST)
-		if form.is_valid():
-			chat_name = form.cleaned_data['name']
-			chat_secret = form.cleaned_data['secret']
-			chat_password = form.cleaned_data['password']
-			new_chatroom = models.Chatroom.objects.create(name = chat_name,secret = chat_secret,password = chat_password)
-			object_list = models.Chatroom.objects.all()
-			return render(request,'classapp/chat_list.html',{'object_list':object_list})
-
-class ChatRoomView(View):
-	model = models.Chatroom
-
-	def get(self, request, *args, **kwargs):
-		return render(request, 'classapp/chat_room.html')
 
 	def post(self, request, *args, **kwargs):
-		return render(request, 'classapp/fix.html')
+		board_num = kwargs['board_num']
+		post_num = kwargs['post_num']
 
+		writer_s = None; writer_p = None
+		try:
+			writer_s = models.Student.objects.filter(email=request.session['email']).get()
+		except:
+			writer_p = models.Professor.objects.filter(email=request.session['email']).get()
+
+		qs = models.Post.objects.filter(board = board_num, id = post_num,writer_s=writer_s,writer_p=writer_p)
+		print(qs)
+		if qs != None:
+			qs.delete()
+
+		return HttpResponseRedirect('/classapp/board/%d' % (board_num))
 
 class AssignView(FormView):
 	form_name = forms.AssignForm
 	template_name = 'classapp/assign.html'
 		
 	def get(self, request, *args, **kwargs):
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
 		form = forms.AssignForm()
 		return render(request, 'classapp/assign.html', {'form':form})
 
@@ -375,16 +399,168 @@ class AssignView(FormView):
 			new_Adviser = models.Adviser.objects.create(professor = professor, student = student)
 			return render(request, 'classapp/msg.html',{'msg':"배정 되었습니다","link":reverse('classapp:assign')})
 
+class GroupCreateView(FormView):
+	models = models.Group
+	
+	def get(self, request, *args, **kwargs):
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
+		form = forms.GroupCreateForm()
+		if request.session['login'] and request.session['user_type'] == 2:
+			return render(request, 'classapp/group_create.html',{'form':form})
+		else :
+			return render(request, 'classapp/msg.html',{'msg':'권한이 없습니다','link':reverse('classapp:group_list')})
+	def post(self, request, *args, **kwargs):
+		form = forms.GroupCreateForm(request.POST)
+		if form.is_valid() :
+			name_input = form.cleaned_data['name_input']
+			new_Adviser = models.Group.objects.create(group_name = name_input)
+			return render(request, 'classapp/msg.html',{'msg':'등록되었습니다','link':reverse('classapp:group_list')})
 
-class CreateBoardView(View):
-	model = models.Board
+
+class GroupAssignView(FormView):
+	models = models.Groupmember
 
 	def get(self, request, *args, **kwargs):
-		return render(request, 'classapp/fix.html')
-
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
+		form = forms.GroupAssignForm()
+		if request.session['login'] and request.session['user_type'] == 2:
+			return render(request, 'classapp/group_assign.html', {'form': form})
+		else:
+			return render(request, 'classapp/msg.html', {'msg':'권한이 없습니다','link':reverse('classapp:group_list')})
 	def post(self, request, *args, **kwargs):
-		return render(request, 'classapp/fix.html')
+		form = forms.GroupAssignForm(request.POST)
+		if form.is_valid():
+			group_input = form.cleaned_data['select_group']
+			student_input = form.cleaned_data['select_member']
+			new_member = models.Groupmember.objects.create(group = group_input, student = student_input)
+			return render(request, 'classapp/msg.html',{'msg':'등록되었습니다','link':reverse('classapp:group_assign')})
+
+class GroupListView(ListView):
+	models = models.Group
+
+	def get(self, request, *args, **kwargs):
+		object_list = models.Group.objects.filter()
+		member_count_list = []
+		if(request.session['user_type'] == 0):
+			writer_s = models.Student.objects.filter(id=request.session['id_code']).get()
+			for obj in object_list:
+				if(models.Groupmember.objects.filter(group = obj, student = writer_s)):
+					member_count_list.append( (obj,(len(models.Groupmember.objects.filter(group=obj)))))
+
+			return render(request,'classapp/group_list.html',{'object_list':object_list,'member_count_list': member_count_list})
+		for obj in object_list:
+			member_count_list.append( (obj,(len(models.Groupmember.objects.filter(group=obj)))))
+		return render(request, 'classapp/group_list.html', {'object_list' : object_list, 'member_count_list': member_count_list})
 		
+
+class ChatroomListView(ListView):
+	model = models.Chatroom
+
+	def get(self, request, *args,**kwargs):
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
+		object_list = models.Chatroom.objects.filter()
+		return render(request,'classapp/chat_list.html',{'object_list':object_list})
+
+class ChatcreateListView(ListView):
+	model = models.Chatroom
+	
+	def get(self, request, *args, **kwargs):
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
+		form = forms.ChatForm()
+		return render(request,'classapp/chat_create.html',{'form':form})
+	def post(self,request):
+		form = forms.ChatForm(request.POST)
+		if form.is_valid() and request.session.get('login',False):
+			chat_name = form.cleaned_data['name']
+			chat_secret = form.cleaned_data['secret']
+			chat_password = form.cleaned_data['password']
+			manager = request.session.get('email')
+
+			chat_manager_s = None; chat_manager_p = None
+
+			try:
+				chat_manager_s = models.Student.objects.filter(email = manager).get()
+			except:
+				chat_manager_p = models.Professor.objects.filter(email = manager).get()
+
+			new_chatroom = models.Chatroom.objects.create(name = chat_name,secret = chat_secret,
+				password = chat_password,manager_s=chat_manager_s,manager_p=chat_manager_p)
+			object_list = models.Chatroom.objects.all()
+			return render(request,'classapp/chat_list.html',{'object_list':object_list})
+
+class BoardEditView(ListView):
+	model = models.Board
+	def get(self,request,*args,**kwargs):
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
+		object_list = models.Board.objects.all()
+		#return HttpResponseRedirect(reverse("classapp:home"))
+		return render(request,'classapp/board_edit.html',{'object_list':object_list})
+	def post(self,request,*args,**kwargs):
+		return HttpResponseRedirect(reverse("classapp:board_create"))
+
+class BoardDeleteView(View):
+	model = models.Board
+	def post(self, request, *args, **kwargs):
+		print(1)
+		board_id = kwargs['board_name']
+		print(board_id)
+		object_list = models.Board.objects.filter(board_name = board_id)
+		if object_list != None:
+			object_list.delete()
+
+		return HttpResponseRedirect(reverse("classapp:board_edit"))
+
+class BoardCreateView(View):
+	model = models.Board
+	def post(self,request,*args,**kwargs):
+		form = forms.Board(request.POST)
+		if form.is_valid():
+			board_name = form.cleaned_data['board_name']
+			group_id = form.cleaned_data['group_id']
+			group_name = models.Group.objects.filter(group_name = group_id).get()
+			object_list = models.Board.objects.create(board_name = board_name,group_id = group_name)
+			return HttpResponseRedirect(reverse("classapp:board_edit"))
+		else:
+			return render(request, 'classapp/board_create.html', {'form':form})
+
+
+class ChatRoomView(View):
+	model = models.Chatroom
+
+	def get(self,request,*args,**kwargs):
+		if not request.session.get('login',False):
+			return render(request, 'classapp/msg.html',{'msg':"권한이 없습니다"})
+		room_name = str(kwargs['chat_num'])
+		chatRoom = models.Chatroom.objects.filter(id=kwargs['chat_num']).get()
+		rname = chatRoom.name
+
+		if chatRoom.secret:
+			form = forms.ChatPasswordForm()
+			chat_num = kwargs['chat_num']
+			return render(request,'classapp/chat_pass.html',{'form':form,'chat_num':chat_num})
+
+		return render(request, 'classapp/chat_room.html',{'room_name_json': mark_safe(json.dumps(room_name)),'rname':rname})
+
+class ChatPasswordView(View):
+
+	def post(self,request,*args,**kwargs):
+		form = forms.ChatPasswordForm(request.POST)
+		chat_num = kwargs['chat_num']
+		if form.is_valid():
+			password = form.cleaned_data['password']
+			chatRoom = models.Chatroom.objects.filter(id=chat_num).get()
+			if password == chatRoom.password:
+				return render(request, 'classapp/chat_room.html',{'room_name_json': mark_safe(json.dumps(str(kwargs['chat_num']))),'rname':chatRoom.name})
+			else:
+				return render(request, 'classapp/msg.html', {'msg':'비밀번호가 틀렸습니다','link':reverse("classapp:chat_list")})
+		else:
+			return render(request,'classapp/chat_pass.html',{'form':form,'chat_num':chat_num})
+	
 '''
 		def form_valid(self,form):
 			return render(request,'classapp/chat_create.html',{'form':form})
@@ -407,47 +583,3 @@ class CreateBoardView(View):
 		여러개의 파라미터를 kwargs가 딕셔너리형태로 받고 거기서 빼서 사용하는식으로 한다.
 	
 '''
-
-class GroupCreateView(FormView):
-	models = models.Group
-	
-	def get(self, request, *args, **kwargs):
-		form = forms.GroupCreateForm()
-		if request.session['login'] and request.session['user_type'] == 2:
-			return render(request, 'classapp/group_create.html',{'form':form})
-		else :
-			return render(request, 'classapp/msg.html',{'msg':'권한이 없습니다'})
-	def post(self, request, *args, **kwargs):
-		form = forms.GroupCreateForm(request.POST)
-		if form.is_valid() :
-			name_input = form.cleaned_data['name_input']
-			new_Adviser = models.Group.objects.create(group_name = name_input)
-			return render(request, 'classapp/msg.html',{'msg':'등록되었습니다'})
-
-
-class GroupAssignView(FormView):
-	models = models.Groupmember
-
-	def get(self, request, *args, **kwargs):
-		form = forms.GroupAssignForm()
-		if request.session['login'] and request.session['user_type'] == 2:
-			return render(request, 'classapp/group_assign.html', {'form': form})
-		else:
-			return render(request, 'classapp/msg.html', {'msg':'권한이 없습니다'})
-	def post(self, request, *args, **kwargs):
-		form = forms.GroupAssignForm(request.POST)
-		if form.is_valid():
-			group_input = form.cleaned_data['select_group']
-			student_input = form.cleaned_data['select_member']
-			new_member = models.Groupmember.objects.create(group = group_input, student = student_input)
-			return render(request, 'classapp/msg.html',{'msg':'등록되었습니다'})
-
-class GroupListView(ListView):
-	models = models.Group
-
-	def get(self, request, *args, **kwargs):
-		object_list = models.Group.objects.filter()
-		member_count_list = []
-		for obj in object_list:
-			member_count_list.append( (obj,(len(models.Groupmember.objects.filter(group=obj)))))
-		return render(request, 'classapp/group_list.html', {'object_list' : object_list, 'member_count_list': member_count_list})

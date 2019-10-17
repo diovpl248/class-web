@@ -27,9 +27,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
-ASGI_APPLICATION = 'mysite.routing.application'
-
-# Application definition
 
 INSTALLED_APPS = [
     'channels',
@@ -39,7 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'classapp.apps.ClassappConfig'
+    'classapp.apps.ClassappConfig',
 ]
 
 MIDDLEWARE = [
@@ -70,7 +67,21 @@ TEMPLATES = [
     },
 ]
 
+ASGI_APPLICATION = 'mysite.routing.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
+
+SESSION_SAVE_EVERY_REQUEST = True
+
 WSGI_APPLICATION = 'mysite.wsgi.application'
+
 
 
 # Database

@@ -36,7 +36,7 @@ class Adviser(models.Model):
 
 class Group(models.Model):
     group_name = models.CharField(max_length=20,unique = True)
-    
+
     def __str__(self):
         return self.group_name
 

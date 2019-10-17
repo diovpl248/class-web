@@ -2,6 +2,13 @@
 
 {% block content %}
 <div class=board>
+<h2>
+    {% if request.session.user_type == 0 %}
+    내 그룹 목록
+    {% else %}
+    그룹 관리
+    {% endif %}
+</h2>
 <table class="table">
         <thread>
         <tr>
@@ -22,6 +29,8 @@
 </table>
 </div>
 <br>
+{% if request.session.user_type == 2 %}
 <a href="{% url 'classapp:group_create' %}">그룹 생성</a>
 <a href="{% url 'classapp:group_assign' %}">그룹 배정</a>
+{% endif %}
 {% endblock content %}

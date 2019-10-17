@@ -43,6 +43,11 @@
            
         }
         
+        .chat textarea{
+            padding: 10px;
+            font-family: 'Nanum Gothic', serif;
+            line-height:150%;
+        }
 
         .board table th{
             background-color:rgb(40,40,40);
@@ -83,62 +88,74 @@
         }
 
         button{
-  background:#0090F0;
-  color:#fff;
-  border:none;
-  position:relative;
-  height:30px;
-  font-size:17px;
-  padding:0 2em;
-  cursor:pointer;
-  transition:800ms ease all;
-  outline:none;
-}
-button:hover{
-  background:#fff;
-  color:#0090F0;
-}
-button:before,button:after{
-  content:'';
-  position:absolute;
-  top:0;
-  right:0;
-  height:0px;
-  width:0;
-  background: #0090F0;
-  transition:400ms ease all;
-}
-button:after{
-  right:inherit;
-  top:inherit;
-  left:0;
-  bottom:0;
-}
-button:hover:before,button:hover:after{
-  width:100%;
-  transition:800ms ease all;
-}
+          background:#373738;
+          color:#fff;
+          border:none;
+          position:relative;
+          height:30px;
+          font-size:17px;
+          padding:0 2em;
+          cursor:pointer;
+          transition:800ms ease all;
+          outline:none;
+        }  
+        button:hover{
+          background:#900000;
+          color:#fff;      
+        }
+        button:before,button:after{
+          content:'';
+          position:absolute;
+          top:0;
+          right:0;
+          height:0px;
+          width:0;
+          background: #373738;
+          transition:400ms ease all;
+        }
+        button:after{
+          right:inherit;
+          top:inherit;
+          left:0;
+          bottom:0;
+        }
+        button:hover:before,button:hover:after{
+            width:100%;
+            transition:800ms ease all;
+        }
 </style>
+
 </head>
 
 <body>
 <header>
     <div class="wrapper">
-        <h1><img src="https://s3.namuwikiusercontent.com/s/edb36d5f1685cc5faebf24da2c25269c6fca12ba1e29fd18b0b37932573168700060a5d859a187f16e5d99b663d1c036bf1a2527f3c550a306dd8c103c229bec80b1636f25d4b8f9472dbcfa878a6626aa1f14090b160a741f4ce9cbdc2f94b5" width="250px" height="60px" align="center"></h1>
+        <h1>KNUT COMMUNITY</h1>
         <nav>
             <ul class="menu">
                 <li><a href="{% url 'classapp:home' %}">홈</a></li>
+
                 {% if request.session.login %}
+                <!-- 로그인하면 보이는 메뉴 -->
                 <li><a href="{% url 'classapp:board_list' %}">게시판</a></li>
                 <li><a href="{% url 'classapp:chat_list' %}">채팅</a></li>
+
+                <!-- 관리자 권한 메뉴 -->
                     {% if request.session.user_type == 2 %}
-                    <li><a href="{% url 'classapp:assign' %}">지도교수배정</a></li>  
-                    <li><a href="{% url 'classapp:create_board' %}">게시판생성</a></li>    
+                <li><a href="{% url 'classapp:assign' %}">지도교수배정</a></li>  
+                <li><a href="{% url 'classapp:board_edit' %}">게시판생성</a></li>    
                     {% endif %}
+
+                <!-- 전체 권한 메뉴 -->
+                <li><a href="{% url 'classapp:group_list' %}">그룹</a></li>
                 <li><a>{{request.session.email}}님</a></li>
+                    {% if request.session.user_type != 2 %}
                 <li><a href="{% url 'classapp:myinfo' %}">내 정보</a></li>
+                    {% endif %}
                 <li><a href="{% url 'classapp:logout' %}"><b>로그아웃</b></a></li>
                 {% else %}
+
+                <!-- 비 로그인 메뉴 -->
                 <li><a href="{% url 'classapp:register_select' %}">회원가입</a></li>
                 <li><a href="{% url 'classapp:login' %}"><b>로그인</b></a></li>
                 {% endif %}
@@ -155,6 +172,7 @@ button:hover:before,button:hover:after{
         {% block content %}{% endblock %}
     </div>
 <br>
+    <!-- 스크립트 block -->
     {% block scripts %}{% endblock %}
 </body>
 </html>

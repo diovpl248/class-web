@@ -23,42 +23,19 @@ urlpatterns = [
     path('board/<int:board_num>/write/',views.PostWriteView.as_view(),name='post_write'),   # 게시글 작성
     path('board/<int:board_num>/<int:post_num>/',views.PostDetailView.as_view(),name='post_view'),  # 게시글 조회
     path('board/<int:board_num>/<int:post_num>/edit/',views.PostEditView.as_view(),name='post_edit'), # 게시글 수정
+    path('board/<int:board_num>/<int:post_num>/delete/', views.PostDeleteView.as_view(), name = 'post_delete'), # 게시글 삭제
     path('board/<int:board_num>/<int:post_num>/<int:comment_num>/',views.CommentDeleteView.as_view(),name='comment_delete'), # 댓글 삭제
 
-    path('chat/list/',views.ChatroomListView.as_view(),name='chat_list'),  # 채팅방 목록 조회
-    path('chat/<int:chat_num>/',views.ChatRoomView.as_view(),name='chat_room'),  # 채팅방 입장
-    path('chat/create/',views.ChatcreateListView.as_view(),name = 'chat_create'),   # 채팅방 생성 [미완:세션구현]
+    path('board/edit/',views.BoardEditView.as_view(),name = 'board_edit'),
+    path('board/edit/<str:board_name>/',views.BoardDeleteView.as_view(),name = 'board_delete'),
+    path('board/create/',views.BoardCreateView.as_view(),name = 'board_create'),
 
-    # 관리자 메뉴
-    path('create/board/',views.CreateBoardView.as_view(),name='create_board'),  # 게시판 목록
+    path('chat/list/',views.ChatroomListView.as_view(),name='chat_list'),  # 채팅방 목록 조회
+    path('chat/create/',views.ChatcreateListView.as_view(),name = 'chat_create'),   # 채팅방 생성 [미완:세션구현]
+    path('chat/<int:chat_num>/password',views.ChatPasswordView.as_view(),name='chat_pass'),  # 채팅방 비밀번호
+    path('chat/<int:chat_num>/',views.ChatRoomView.as_view(),name='chat_room'),  # 채팅방
 
     path('group/create/', views.GroupCreateView.as_view(), name='group_create'), #그룹 생성 
     path('group/assign/', views.GroupAssignView.as_view(), name = 'group_assign'), #그룹 맴버 배정
     path('group/list', views.GroupListView.as_view(), name = 'group_list'),
 ]
-
-'''
-    path('myinfo', pass),
-    path('assign', pass),
-    path('register_s',pass),
-    path('register_p',pass),
-
-    # 게시판
-    path('board/list',pass),  # 게시판 목록
-    path('board/edit',pass),   # 게시판 관리
-    path('board/request',pass), # 게시판 요청
-    path('board/<int:board_num>',pass),  # 게시판 조회
-
-    # 게시글
-    path('board/<int:pk>/write',pass),   # 게시글 작성
-    path('board/<int:pk>/<int:number>',pass),  # 게시글 조회
-    path('board/<int:pk>/<int:pk>/edit',pass), # 게시판 수정
-
-
-    # 채팅
-    path('chat/list',pass),  # 채팅방 목록
-    path('chat/create',pass),   # 채팅방 생성
-    path('chat/<int:pk>',pass), # 채팅방 입장
-    path('chat/<int:pk>/edit',pass),  # 채팅방 수정
-    path('chat/<int:pk>/user_list',pass),  # 채팅방 유저목록 조회
-    '''

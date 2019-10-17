@@ -27,7 +27,10 @@ class ChatForm(forms.Form):
     name = forms.CharField(label = '방이름',max_length=200)
     secret = forms.BooleanField(label ='비밀방여부',required=False)
     password = forms.CharField(label = '비밀번호',max_length = 50,required=False)
-    #manager = a
+
+
+class ChatPasswordForm(forms.Form):
+    password = forms.CharField(label="비밀번호",max_length=50)
 
 class AssignForm(forms.Form):
     select_professor = forms.ModelChoiceField(models.Professor.objects.order_by('email'))
@@ -48,3 +51,7 @@ class GroupCreateForm(forms.Form):
 class GroupAssignForm(forms.Form):
     select_group = forms.ModelChoiceField(models.Group.objects.order_by('group_name'))
     select_member = forms.ModelChoiceField(models.Student.objects.order_by('email'))
+
+class Board(forms.Form):
+    board_name = forms.CharField(label = '게시판이름',max_length=20)
+    group_id = forms.ModelChoiceField(models.Group.objects.order_by('group_name'))
